@@ -2,128 +2,96 @@
 using SFML.System;
 using SFML.Window;
 
-public class Program
+class Program
 {
+    private const int CellSize = 10;
+    private static uint windowWidth = 1024;
+    private static uint windowHeight = 800;
+    private static int cellCount = (int)(windowWidth / CellSize);  // Calculate the number of cells based on the window's width and the cell size
+
     static void Main()
     {
-        // Create the main window
-        RenderWindow app = new RenderWindow(new VideoMode(1024, 800), "Rule 30 Cellular Automaton");
-        app.Closed += new EventHandler(OnClosed);
-        CellularAutomaton automaton = new CellularAutomaton(1024);
-        app.MouseWheelScrolled += new EventHandler<MouseWheelScrollEventArgs>(OnMouseWheelScrolled);
+        RenderWindow window = InitializeWindow();
+        RectangleShape[] cells = InitializeCells();
 
-        static void OnMouseWheelScrolled(object sender, MouseWheelScrollEventArgs e)
+        ulong state = 1ul << (cellCount / 2);  // Set the initial state to have a single "on" cell in the middle
+        window.Clear(Color.White);
+
+        bool end = true;
+        while (window.IsOpen)
         {
-            // e.Delta will be positive if the wheel was scrolled up, negative if down
-            if (e.Delta > 0)
-            {
-                // Scroll up
-            }
-            else
-            {
-                // Scroll down
-            }
-        }
+            window.DispatchEvents();
+            if (!end) { continue; }
+            state = DrawAutomaton(window, cells, state, 39);  // Draw 3 lines
+            end = false;
 
-        // Create a clock to control the update rate
-        Clock clock = new Clock();
-        int generation = 0;
-
-        // Start the game loop
-        while (app.IsOpen)
-        {
-            // Process events
-            app.DispatchEvents();
-
-            // Clear screen
-            app.Clear(Color.Red);
-
-            // Draw the automaton
-            DrawAutomaton(app, automaton.cells, generation);
-
-            // Update the automaton if enough time has passed
-            if (clock.ElapsedTime.AsSeconds() >= 0.1f)  // 0.1 seconds per update
-            {
-                automaton.cells = UpdateAutomaton(automaton.cells);
-                clock.Restart();
-                generation++;
-            }
-
-            // Update the window
-            app.Display();
+            window.Display();
         }
     }
 
-    public class CellularAutomaton
+    private static RenderWindow InitializeWindow()
     {
-        public bool[] cells;
-
-        public CellularAutomaton(int size)
-        {
-            cells = new bool[size];
-            cells[size / 2] = true; // Set the middle cell to "on"
-        }
+        RenderWindow window = new RenderWindow(new VideoMode(windowWidth, windowHeight), "Rule 30");
+        window.Closed += (s, e) => window.Close();
+        return window;
     }
 
-    static void DrawAutomaton(RenderWindow window, bool[] automaton, int generation)
+    private static RectangleShape[] InitializeCells()
     {
-        int cellSize = 10;  // You can adjust this as needed
-
-        // Go through the automaton
-        for (int i = 0; i < automaton.Length; i++)
+        RectangleShape[] cells = new RectangleShape[cellCount];  // Create an array of cells based on the calculated cell count
+        for (int i = 0; i < cells.Length; ++i)
         {
-            // Create a square for the cell
-            RectangleShape cell = new RectangleShape(new Vector2f(cellSize, cellSize));
+            cells[i] = new RectangleShape(new Vector2f(CellSize, CellSize));
+        }
+        return cells;
+    }
 
-            // Set the position of the cell.
-            cell.Position = new Vector2f(i * cellSize, generation * cellSize);
+    private static ulong DrawAutomaton(RenderWindow window, RectangleShape[] cells, ulong state, int lines)
+    {
+        for (int i = 0; i < lines; ++i)
+        {
+            DrawLine(window, cells, state, i);
+            state = CalculateNextState(state);
+        }
+        return state;
+    }
 
-            // Set the color of the cell based on its state
-            if (automaton[i])
+    private static void DrawLine(RenderWindow window, RectangleShape[] cells, ulong state, int line)
+    {
+        Random rnd = new Random();
+
+        for (int j = 0; j < cellCount; ++j)
+        {
+            cells[j].Position = new Vector2f(j * CellSize, line * CellSize);
+
+            if ((state >> j & 1) != 0) // If cell is "on"
             {
-                // "On" cells are white
-                cell.FillColor = Color.White;
+                int red = rnd.Next(0, 256);   // Generate random red value
+                int green = rnd.Next(0, 256); // Generate random green value
+                int blue = rnd.Next(0, 256);  // Generate random blue value
+                cells[j].FillColor = new Color((byte)red, (byte)green, (byte)blue);
             }
-            else
+            else // If cell is "off"
             {
-                // "Off" cells are black
-                cell.FillColor = Color.Black;
+                cells[j].FillColor = Color.White;
             }
 
-            // Draw the cell
-            window.Draw(cell);
+            window.Draw(cells[j]);
         }
     }
 
-    public static bool[] UpdateAutomaton(bool[] currentState)
-    {
-        int size = currentState.Length;
-        bool[] nextState = new bool[size];
 
-        for (int i = 0; i < size; i++)
+    private static ulong CalculateNextState(ulong state)
+    {
+        ulong newState = 0;
+        for (int j = 1; j < cellCount - 1; ++j)
         {
-            // Get the state of the current cell and its neighbors.
-            // We'll use the modulus operator to handle the edges of the array,
-            // effectively creating a "wrap-around" effect.
-            bool left = currentState[(i - 1 + size) % size];
-            bool center = currentState[i];
-            bool right = currentState[(i + 1) % size];
-
-            // Apply Rule 30 to compute the next state of the current cell.
-            nextState[i] = (left && !center && !right) ||
-                           (!left && center && !right) ||
-                           (!left && !center && right) ||
-                           (!left && !center && !right);
+            ulong left = (state >> (j - 1)) & 1;
+            ulong center = (state >> j) & 1;
+            ulong right = (state >> (j + 1)) & 1;
+            ulong newCell = (left ^ (center | right));
+            newState |= (newCell << j);
         }
-
-        return nextState;
-    }
-
-
-    static void OnClosed(object sender, EventArgs e)
-    {
-        // Close the window when OnClosed event is received
-        RenderWindow window = (RenderWindow)sender;
-        window.Close();
+        return newState;
     }
 }
