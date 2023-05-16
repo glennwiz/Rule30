@@ -15,7 +15,7 @@ class Program
         RectangleShape[] cells = InitializeCells();
 
         ulong state = 1ul << (cellCount / 2);  // Set the initial state to have a single "on" cell in the middle
-        window.Clear(Color.White);
+        window.Clear(Color.Black);
 
         bool end = true;
         while (window.IsOpen)
@@ -73,7 +73,7 @@ class Program
             }
             else // If cell is "off"
             {
-                cells[j].FillColor = Color.White;
+                cells[j].FillColor = Color.Black;
             }
 
             window.Draw(cells[j]);
