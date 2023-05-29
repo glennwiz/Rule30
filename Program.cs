@@ -1,97 +1,84 @@
-﻿using SFML.Graphics;
+﻿using System;
+using SFML.Graphics;
 using SFML.System;
 using SFML.Window;
 
-class Program
+namespace Rule30Simulation
 {
-    private const int CellSize = 10;
-    private static uint windowWidth = 1024;
-    private static uint windowHeight = 800;
-    private static int cellCount = (int)(windowWidth / CellSize);  // Calculate the number of cells based on the window's width and the cell size
-
-    static void Main()
+    class Program
     {
-        RenderWindow window = InitializeWindow();
-        RectangleShape[] cells = InitializeCells();
+        static uint gridSize = 100;
+        static uint cellSize = 5;
+        static uint generations = 100;
 
-        ulong state = 1ul << (cellCount / 2);  // Set the initial state to have a single "on" cell in the middle
-        window.Clear(Color.Black);
+        static bool[,] grid;
+        static RenderWindow window;
 
-        bool end = true;
-        while (window.IsOpen)
+        static void Main(string[] args)
         {
-            window.DispatchEvents();
-            if (!end) { continue; }
-            state = DrawAutomaton(window, cells, state, 39);  // Draw 3 lines
-            end = false;
+            grid = new bool[gridSize, generations];
+            InitializeGrid();
 
-            window.Display();
-        }
-    }
+            window = new RenderWindow(new VideoMode(gridSize * cellSize, generations * cellSize), "Rule 30 Simulation");
+            window.Closed += (sender, e) => window.Close();
 
-    private static RenderWindow InitializeWindow()
-    {
-        RenderWindow window = new RenderWindow(new VideoMode(windowWidth, windowHeight), "Rule 30");
-        window.Closed += (s, e) => window.Close();
-        return window;
-    }
-
-    private static RectangleShape[] InitializeCells()
-    {
-        RectangleShape[] cells = new RectangleShape[cellCount];  // Create an array of cells based on the calculated cell count
-        for (int i = 0; i < cells.Length; ++i)
-        {
-            cells[i] = new RectangleShape(new Vector2f(CellSize, CellSize));
-        }
-        return cells;
-    }
-
-    private static ulong DrawAutomaton(RenderWindow window, RectangleShape[] cells, ulong state, int lines)
-    {
-        for (int i = 0; i < lines; ++i)
-        {
-            DrawLine(window, cells, state, i);
-            state = CalculateNextState(state);
-        }
-        return state;
-    }
-
-    private static void DrawLine(RenderWindow window, RectangleShape[] cells, ulong state, int line)
-    {
-        Random rnd = new Random();
-
-        for (int j = 0; j < cellCount; ++j)
-        {
-            cells[j].Position = new Vector2f(j * CellSize, line * CellSize);
-
-            if ((state >> j & 1) != 0) // If cell is "on"
+            while (window.IsOpen)
             {
-                int red = rnd.Next(0, 256);   // Generate random red value
-                int green = rnd.Next(0, 256); // Generate random green value
-                int blue = rnd.Next(0, 256);  // Generate random blue value
-                cells[j].FillColor = new Color((byte)red, (byte)green, (byte)blue);
-            }
-            else // If cell is "off"
-            {
-                cells[j].FillColor = Color.Black;
-            }
+                window.DispatchEvents();
 
-            window.Draw(cells[j]);
+                UpdateGrid();
+                DrawGrid();
+
+                window.Display();
+            }
         }
-    }
 
-
-    private static ulong CalculateNextState(ulong state)
-    {
-        ulong newState = 0;
-        for (int j = 1; j < cellCount - 1; ++j)
+        static void InitializeGrid()
         {
-            ulong left = (state >> (j - 1)) & 1;
-            ulong center = (state >> j) & 1;
-            ulong right = (state >> (j + 1)) & 1;
-            ulong newCell = (left ^ (center | right));
-            newState |= (newCell << j);
+            // Set the initial configuration of the grid
+            grid[gridSize / 2, 0] = true;
         }
-        return newState;
+
+        static void UpdateGrid()
+        {
+            for (uint y = 1; y < generations; y++)
+            {
+                for (uint x = 0; x < gridSize; x++)
+                {
+                    // Apply Rule 30 to determine the new state of the cell
+                    bool left = x > 0 ? grid[x - 1, y - 1] : false;
+                    bool center = grid[x, y - 1];
+                    bool right = x < gridSize - 1 ? grid[x + 1, y - 1] : false;
+
+                    grid[x, y] = ApplyRule30(left, center, right);
+                }
+            }
+        }
+
+        static bool ApplyRule30(bool left, bool center, bool right)
+        {
+            return (left && !center && !right) || (!left && center && right) || (!left && center && !right) || (!left && !center && right);
+        }
+
+        static void DrawGrid()
+        {
+            window.Clear(Color.Black);
+
+            for (uint y = 0; y < generations; y++)
+            {
+                for (uint x = 0; x < gridSize; x++)
+                {
+                    if (grid[x, y])
+                    {
+                        RectangleShape cell = new RectangleShape(new Vector2f(cellSize, cellSize))
+                        {
+                            Position = new Vector2f(x * cellSize, y * cellSize),
+                            FillColor = Color.White
+                        };
+                        window.Draw(cell);
+                    }
+                }
+            }
+        }
     }
 }
