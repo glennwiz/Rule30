@@ -17,6 +17,7 @@ namespace Rule30Simulation
         static RenderWindow window;
 
         static bool isDownKeyPressed = false;
+        static bool isUpKeyPressed = false;
 
         static void Main(string[] args)
         {
@@ -35,6 +36,11 @@ namespace Rule30Simulation
                 if (isDownKeyPressed)
                 {
                     ScrollGridUp();
+                }
+
+                if (isUpKeyPressed)
+                {
+                    ScrollGridDown();
                 }
 
                 UpdateGrid();
@@ -77,21 +83,44 @@ namespace Rule30Simulation
 
         static void ScrollGridUp()
         {
-            for (uint y = 1; y < generations; y++)
+            for (uint y = 30; y < generations; y++)
             {
                 for (uint x = 0; x < gridSize; x++)
                 {
-                    grid[x, y - 1] = grid[x, y];
+                    grid[x, y - 30] = grid[x, y];
                 }
             }
 
-            // Clear the bottom row
-            for (uint x = 0; x < gridSize; x++)
+            // Clear the bottom rows
+            for (uint y = generations - 30; y < generations; y++)
             {
-                grid[x, generations - 1] = false;
+                for (uint x = 0; x < gridSize; x++)
+                {
+                    grid[x, y] = false;
+                }
             }
         }
 
+        static void ScrollGridDown()
+        {
+            for (uint y = generations - 31; y > 0; y--)
+            {
+                for (uint x = 0; x < gridSize; x++)
+                {
+                    grid[x, y] = grid[x, y - 30];
+                }
+            }
+
+            // Clear the top rows
+            for (uint y = 0; y < 30; y++)
+            {
+                for (uint x = 0; x < gridSize; x++)
+                {
+                    grid[x, y] = false;
+                }
+            }
+        }
+        
         static void DrawGrid()
         {
             window.Clear(Color.Black);
@@ -119,6 +148,11 @@ namespace Rule30Simulation
             {
                 isDownKeyPressed = true;
             }
+
+            if (e.Code == Keyboard.Key.Up)
+            {
+                isUpKeyPressed = true;
+            }
         }
 
         static void OnKeyReleased(object sender, KeyEventArgs e)
@@ -126,6 +160,11 @@ namespace Rule30Simulation
             if (e.Code == Keyboard.Key.Down)
             {
                 isDownKeyPressed = false;
+            }
+
+            if (e.Code == Keyboard.Key.Up)
+            {
+                isUpKeyPressed = false;
             }
         }
     }
