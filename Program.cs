@@ -10,21 +10,32 @@ namespace Rule30Simulation
         static uint gridSize = 100;
         static uint cellSize = 5;
         static uint generations = 100;
+        static uint windowSizeX = gridSize * cellSize;
+        static uint windowSizeY = generations * cellSize;
 
         static bool[,] grid;
         static RenderWindow window;
+
+        static bool isDownKeyPressed = false;
 
         static void Main(string[] args)
         {
             grid = new bool[gridSize, generations];
             InitializeGrid();
 
-            window = new RenderWindow(new VideoMode(gridSize * cellSize, generations * cellSize), "Rule 30 Simulation");
+            window = new RenderWindow(new VideoMode(windowSizeX, windowSizeY), "Rule 30 Simulation");
             window.Closed += (sender, e) => window.Close();
+            window.KeyPressed += OnKeyPressed;
+            window.KeyReleased += OnKeyReleased;
 
             while (window.IsOpen)
             {
                 window.DispatchEvents();
+
+                if (isDownKeyPressed)
+                {
+                    ScrollGridUp();
+                }
 
                 UpdateGrid();
                 DrawGrid();
@@ -64,6 +75,23 @@ namespace Rule30Simulation
             return (left && !center && !right) || (!left && center && right) || (!left && center && !right) || (!left && !center && right);
         }
 
+        static void ScrollGridUp()
+        {
+            for (uint y = 1; y < generations; y++)
+            {
+                for (uint x = 0; x < gridSize; x++)
+                {
+                    grid[x, y - 1] = grid[x, y];
+                }
+            }
+
+            // Clear the bottom row
+            for (uint x = 0; x < gridSize; x++)
+            {
+                grid[x, generations - 1] = false;
+            }
+        }
+
         static void DrawGrid()
         {
             window.Clear(Color.Black);
@@ -82,6 +110,22 @@ namespace Rule30Simulation
                         window.Draw(cell);
                     }
                 }
+            }
+        }
+
+        static void OnKeyPressed(object sender, KeyEventArgs e)
+        {
+            if (e.Code == Keyboard.Key.Down)
+            {
+                isDownKeyPressed = true;
+            }
+        }
+
+        static void OnKeyReleased(object sender, KeyEventArgs e)
+        {
+            if (e.Code == Keyboard.Key.Down)
+            {
+                isDownKeyPressed = false;
             }
         }
     }
