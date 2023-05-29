@@ -45,10 +45,14 @@ namespace Rule30Simulation
             {
                 for (uint x = 0; x < gridSize; x++)
                 {
+                    // Get the indices of the left, center, and right neighbors with wrapping behavior
+                    uint leftIndex = (x == 0) ? (gridSize - 1) : (x - 1);
+                    uint rightIndex = (x == gridSize - 1) ? 0 : (x + 1);
+
                     // Apply Rule 30 to determine the new state of the cell
-                    bool left = x > 0 ? grid[x - 1, y - 1] : false;
+                    bool left = grid[leftIndex, y - 1];
                     bool center = grid[x, y - 1];
-                    bool right = x < gridSize - 1 ? grid[x + 1, y - 1] : false;
+                    bool right = grid[rightIndex, y - 1];
 
                     grid[x, y] = ApplyRule30(left, center, right);
                 }
